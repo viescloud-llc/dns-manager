@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 2,
+            "activePatchIndex": 3,
             "patches": [
                 {
                     "date": 1730144021533,
@@ -16,6 +16,10 @@
                 {
                     "date": 1730144122479,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,10 +2,8 @@\n \n import org.springframework.boot.SpringApplication;\n import org.springframework.boot.autoconfigure.SpringBootApplication;\n \n-import com.vincent.inc.viesspringutils.ViesApplication;\n-\n @SpringBootApplication\n public class Application {\n \n \tpublic static void main(String[] args) {\n"
+                },
+                {
+                    "date": 1730148764045,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,12 +2,19 @@\n \n import org.springframework.boot.SpringApplication;\n import org.springframework.boot.autoconfigure.SpringBootApplication;\n \n+import com.viescloud.llc.viesspringutils.ViesApplication;\n+\n @SpringBootApplication\n-public class Application {\n+public class Application extends ViesApplication {\n \n \tpublic static void main(String[] args) {\n \t\tSpringApplication.run(Application.class, args);\n \t}\n \n+\t@Override\n+\tpublic String getApplicationName() {\n+\t\treturn \"dns manager service\";\n+\t}\n+\n }\n"
                 }
             ],
             "date": 1730144021533,

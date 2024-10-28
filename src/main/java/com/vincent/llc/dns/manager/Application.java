@@ -3,11 +3,18 @@ package com.vincent.llc.dns.manager;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import com.viescloud.llc.viesspringutils.ViesApplication;
+
 @SpringBootApplication
-public class Application {
+public class Application extends ViesApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
+	}
+
+	@Override
+	public String getApplicationName() {
+		return "dns manager service";
 	}
 
 }
