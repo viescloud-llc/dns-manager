@@ -1,0 +1,18 @@
+{
+    "sourceFile": "src/main/resources/logback-spring.xml",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1730143496055,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1730143496055,
+            "name": "Commit-0",
+            "content": "<configuration debug=\"false\">\r\n\r\n    <property name=\"port\" value=\"12201\" />\r\n    <property name=\"host\" value=\"10.24.24.2\" />\r\n    <property name=\"app_name\" value=\"DNS-MANAGER-SERVICE-local\" />\r\n\r\n    <appender name=\"STDOUT\" class=\"ch.qos.logback.core.ConsoleAppender\">\r\n        <encoder>\r\n            <pattern>%green(%date) %highlight(%-5level) %yellow([%file:%line]) %blue(: %msg%n)</pattern>\r\n            <charset>UTF-8</charset>\r\n        </encoder>\r\n    </appender>\r\n\r\n    <appender name=\"GELF\" class=\"de.siegmar.logbackgelf.GelfUdpAppender\">\r\n        <graylogHost>${host}</graylogHost>\r\n        <graylogPort>${port}</graylogPort>\r\n        <maxChunkSize>508</maxChunkSize>\r\n        <useCompression>true</useCompression>\r\n        <encoder class=\"de.siegmar.logbackgelf.GelfEncoder\">\r\n            <originHost>${host}</originHost>\r\n            <includeRawMessage>false</includeRawMessage>\r\n            <includeMarker>true</includeMarker>\r\n            <includeMdcData>true</includeMdcData>\r\n            <includeCallerData>true</includeCallerData>\r\n            <includeRootCauseData>true</includeRootCauseData>\r\n            <includeLevelName>true</includeLevelName>\r\n            <shortPatternLayout class=\"ch.qos.logback.classic.PatternLayout\">\r\n                <pattern>%m%nopex</pattern>\r\n            </shortPatternLayout>\r\n            <fullPatternLayout class=\"ch.qos.logback.classic.PatternLayout\">\r\n                <pattern>%m%n</pattern>\r\n            </fullPatternLayout>\r\n            <staticField>app_name:${app_name}</staticField>\r\n        </encoder>\r\n    </appender>\r\n\r\n    <root level=\"INFO\">\r\n        <appender-ref ref=\"STDOUT\" />\r\n        <appender-ref ref=\"GELF\" />\r\n    </root>\r\n\r\n</configuration>"
+        }
+    ]
+}
