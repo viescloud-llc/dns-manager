@@ -1,0 +1,22 @@
+{
+    "sourceFile": "src/test/java/com/vincent/llc/dns/manager/ApplicationTests.java",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1730163891995,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1730163905969,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,13 +1,13 @@\n package com.vincent.llc.dns.manager;\n \n-import org.junit.jupiter.api.Test;\n-import org.springframework.boot.test.context.SpringBootTest;\n+// import org.junit.jupiter.api.Test;\n+// import org.springframework.boot.test.context.SpringBootTest;\n \n-@SpringBootTest\n+// @SpringBootTest\n class ApplicationTests {\n \n-\t@Test\n+\t// @Test\n \tvoid contextLoads() {\n \t\t\n \t}\n \n"
+                }
+            ],
+            "date": 1730163891995,
+            "name": "Commit-0",
+            "content": "package com.vincent.llc.dns.manager;\n\nimport org.junit.jupiter.api.Test;\nimport org.springframework.boot.test.context.SpringBootTest;\n\n@SpringBootTest\nclass ApplicationTests {\n\n\t@Test\n\tvoid contextLoads() {\n\t\t\n\t}\n\n}\n"
+        }
+    ]
+}

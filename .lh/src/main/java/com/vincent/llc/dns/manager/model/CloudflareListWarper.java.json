@@ -1,0 +1,18 @@
+{
+    "sourceFile": "src/main/java/com/vincent/llc/dns/manager/model/CloudflareListWarper.java",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1730165293909,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1730165293909,
+            "name": "Commit-0",
+            "content": "package com.vincent.llc.dns.manager.model;\r\n\r\nimport java.util.List;\r\n\r\nimport lombok.AllArgsConstructor;\r\nimport lombok.Data;\r\nimport lombok.NoArgsConstructor;\r\n\r\n@Data\r\n@AllArgsConstructor\r\n@NoArgsConstructor\r\npublic class CloudflareListWarper {\r\n    private List<CloudflareResult> result;\r\n}\r\n"
+        }
+    ]
+}
