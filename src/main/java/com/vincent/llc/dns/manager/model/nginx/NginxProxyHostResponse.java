@@ -4,33 +4,18 @@ import java.time.OffsetDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class NginxProxyHostResponse {
+public class NginxProxyHostResponse extends NginxProxyHostRequest {
     private long id;
     private OffsetDateTime createdOn;
     private OffsetDateTime modifiedOn;
     private long ownerUserID;
-    private List<String> domainNames;
-    private String forwardHost;
-    private long forwardPort;
-    private long accessListID;
-    private long certificateID;
-    private long sslForced;
-    private long cachingEnabled;
-    private long blockExploits;
-    private String advancedConfig;
-    private NginxMeta meta;
-    private long allowWebsocketUpgrade;
-    private long http2Support;
-    private String forwardScheme;
-    private long enabled;
-    private List<NginxLocation> locations;
-    private long hstsEnabled;
-    private long hstsSubdomains;
+    private boolean enabled;
+    private NginxCertificateResponse certificate;
 }
