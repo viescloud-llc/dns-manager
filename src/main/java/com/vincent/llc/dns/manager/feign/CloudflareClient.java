@@ -1,6 +1,7 @@
 package com.vincent.llc.dns.manager.feign;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +19,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 public interface CloudflareClient {
     
     @GetMapping(value = "client/v4/zones/{zoneId}/dns_records", produces = "application/json")
-    public CloudflareListWarper getDNSList(
+    public Optional<CloudflareListWarper> getDNSList(
         @PathVariable("zoneId") String zoneId, 
         @RequestHeader("X-Auth-Email") String email, 
         @RequestHeader("X-Auth-Key") String key,
@@ -27,7 +28,7 @@ public interface CloudflareClient {
     );
 
     @GetMapping(value = "client/v4/zones/{zoneId}/dns_records/{recordId}", produces = "application/json")
-    public CloudflareWarper getDNS(
+    public Optional<CloudflareWarper> getDNS(
             @PathVariable("zoneId") String zoneId, 
             @PathVariable("recordId") String recordId, 
             @RequestHeader("X-Auth-Email") String email, 
@@ -35,7 +36,7 @@ public interface CloudflareClient {
     );
 
     @PatchMapping(value = "client/v4/zones/{zoneId}/dns_records/{recordId}", produces = "application/json", consumes = "application/json")
-    public CloudflareWarper patchDNS(
+    public Optional<CloudflareWarper> patchDNS(
             @PathVariable("zoneId") String zoneId, 
             @PathVariable("recordId") String recordId, 
             @RequestHeader("X-Auth-Email") String email, 

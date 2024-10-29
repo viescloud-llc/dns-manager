@@ -4,12 +4,13 @@ import lombok.Data;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class NginxProxyHostRequest {
+public class NginxProxyHostRequest implements Serializable {
     private List<String> domainNames;
     private String forwardScheme;
     private String forwardHost;

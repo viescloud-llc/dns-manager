@@ -1,5 +1,6 @@
 package com.vincent.llc.dns.manager.model.cloudflare;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 
 import lombok.AllArgsConstructor;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CloudflareResult {
+public class CloudflareResult implements Serializable {
     private String id;
     private String zoneID;
     private String zoneName;
@@ -21,7 +22,7 @@ public class CloudflareResult {
     private boolean proxiable;
     private boolean proxied;
     private long ttl;
-    private Settings settings;
+    private Object settings;
     private Meta meta;
     private String comment;
     private Object[] tags;
@@ -32,13 +33,10 @@ public class CloudflareResult {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Meta {
+    public static class Meta implements Serializable {
         private boolean autoAdded;
         private boolean managedByApps;
         private boolean managedByArgoTunnel;
-    }
-    
-    public static class Settings {
     }
 }
 
