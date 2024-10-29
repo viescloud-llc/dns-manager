@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.vincent.llc.dns.manager.model.CloudflareListWarper;
-import com.vincent.llc.dns.manager.model.CloudflareWarper;
+import com.vincent.llc.dns.manager.model.cloudflare.CloudflareListWarper;
+import com.vincent.llc.dns.manager.model.cloudflare.CloudflareWarper;
 
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 

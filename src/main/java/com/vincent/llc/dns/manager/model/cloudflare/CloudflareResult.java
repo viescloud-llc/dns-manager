@@ -1,4 +1,4 @@
-package com.vincent.llc.dns.manager.model;
+package com.vincent.llc.dns.manager.model.cloudflare;
 
 import java.time.OffsetDateTime;
 

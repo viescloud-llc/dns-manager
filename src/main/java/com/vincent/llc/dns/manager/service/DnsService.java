@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.vincent.llc.dns.manager.feign.CloudflareClient;
-import com.vincent.llc.dns.manager.feign.NginxClient;
+import com.vincent.llc.dns.manager.feign.LocalNginxClient;
 
 @Service
 public class DnsService {
@@ -13,7 +13,7 @@ public class DnsService {
     private CloudflareClient cloudflareClient;
 
     @Autowired
-    private NginxClient nginxClient;
+    private LocalNginxClient nginxClient;
 
     public DnsService() {
     
