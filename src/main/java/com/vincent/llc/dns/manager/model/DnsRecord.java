@@ -26,5 +26,8 @@ public class DnsRecord implements Serializable {
     private NginxProxyHostRequest publicNginxRecord;
 
     @Builder.Default
-    private List<CloudflareResult> cloudflareRecord = new ArrayList<>();
+    private List<CloudflareResult> cloudflareViescloudRecord = new ArrayList<>();
+
+    @Builder.Default
+    private List<CloudflareResult> cloudflareViesLocalRecord = new ArrayList<>();
 }

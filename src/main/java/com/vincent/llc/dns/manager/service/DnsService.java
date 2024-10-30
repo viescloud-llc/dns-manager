@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +21,7 @@ import com.vincent.llc.dns.manager.feign.NginxClient;
 import com.vincent.llc.dns.manager.feign.PublicNginxClient;
 import com.vincent.llc.dns.manager.model.DnsRecord;
 import com.vincent.llc.dns.manager.model.nginx.NginxLoginRequest;
+import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostResponse;
 
 @Service
 public class DnsService {
@@ -57,10 +60,10 @@ public class DnsService {
     @Value("${nginx.password}")
     private String nginxPassword;
 
-    public DatabaseCall<String, List<DnsRecord>, ?> dnsRecordsCache;
-    public DatabaseCall<String, Map<String, String>, ?> jwtCache;
+    public DatabaseCall<String, Map<String, DnsRecord>, ?> dnsRecordsCache;
+    public DatabaseCall<String, String, ?> jwtCache;
 
-    public DnsService(DatabaseCall<String, List<DnsRecord>, ?> dnsRecordsCache, DatabaseCall<String, Map<String, String>, ?> jwtCache) {
+    public DnsService(DatabaseCall<String, Map<String, DnsRecord>, ?> dnsRecordsCache, DatabaseCall<String, String, ?> jwtCache) {
         this.dnsRecordsCache = dnsRecordsCache;
         this.dnsRecordsCache.init(KEY_RECORD_PREFIX);
         this.dnsRecordsCache.setTTL(DateTime.ofMinutes(60));
@@ -70,26 +73,62 @@ public class DnsService {
         this.jwtCache.setTTL(DateTime.ofDays(1));
     }
 
-    public List<DnsRecord> getAllDnsRecord() {
-        List<DnsRecord> records = dnsRecordsCache.get(KEY_RECORDS);
-        if(records != null) {
-            return records;
-        }
-
-        Map<String, DnsRecord> recordMap = new HashMap<>();
-        this.fetchAllPublicDnsRecords(recordMap);
-        this.fetchAllLocalDnsRecords(recordMap);
-        
-        var result = new ArrayList<>(recordMap.values());
-        this.dnsRecordsCache.saveAndExpire(KEY_RECORDS, result);
-        return result;
+    public void clearDnsRecordsCache() {
+        this.dnsRecordsCache.deleteByKey(KEY_RECORDS);
     }
 
-    private void fetchAllPublicDnsRecords(Map<String, DnsRecord> recordMap) {
+    public List<DnsRecord> getDnsRecordList() {
+        return new ArrayList<>(this.getDnsRecordMap().values());
+    }
+
+    public Map<String, DnsRecord> getDnsRecordMap() {
+        Map<String, DnsRecord> recordMap = dnsRecordsCache.get(KEY_RECORDS);
+        if(recordMap != null) {
+            return recordMap;
+        }
+
+        recordMap = new HashMap<>();
+        var dnsMap = new HashMap<String, String>();
+        this.fetchAllPublicNginxDnsRecords(recordMap, dnsMap);
+        this.fetchAllLocalNginxDnsRecords(recordMap, dnsMap);
+        
+        this.dnsRecordsCache.saveAndExpire(KEY_RECORDS, recordMap);
+        return recordMap;
+    }
+
+    private void fetchAllCloudflareViescloudDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
+        var list = this.cloudflareClient.getDNSList(cloudflareViescloudZoneId, cloudflareEmail, cloudflareKey, 1, 1000)
+                                        .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get Viescloud dns list from cloudflare"));
+
+        list.getResult().forEach(dns -> {
+
+            if(!dns.getType().toUpperCase().equals("CNAME") || !dnsMap.containsKey(dns.getName())) {
+                return;
+            }
+
+            var url = dnsMap.get(dns.getName());
+            
+            DnsRecord record = null;
+            
+            if(!recordMap.containsKey(url)) {
+                record = new DnsRecord();
+                record.setUri(URI.create(url));
+                recordMap.put(url, record);
+            }
+            else {
+                record = recordMap.get(url);
+            }
+
+            record.getCloudflareViescloudRecord();
+
+        });
+    }
+
+    private void fetchAllPublicNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
         var proxyHosts = this.publicNginxClient.getAllProxyHost(this.getPublicNginxJwtHeader())
                                                .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get public nginx proxy host"));
 
-        proxyHosts.parallelStream().forEach(proxyHost -> {
+        proxyHosts.forEach(proxyHost -> {
             String url = String.format("%s://%s:%s", proxyHost.getForwardScheme(), proxyHost.getForwardHost(), proxyHost.getForwardPort());
             DnsRecord record = null;
             
@@ -104,12 +143,25 @@ public class DnsService {
 
             record.setEnabledPublicNginx(proxyHost.isEnabled());
             record.setPublicNginxRecord(proxyHost);
+            
+            proxyHost.getDomainNames().forEach(domainName -> {
+                if(!dnsMap.containsKey(domainName))
+                    dnsMap.put(domainName, url);
+            });
         });
     }
 
-    private void fetchAllLocalDnsRecords(Map<String, DnsRecord> recordMap) {
-        var proxyHosts = this.localNginxClient.getAllProxyHost(this.getLocalNginxJwtHeader())
-                                              .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get local nginx proxy host"));
+    private void fetchAllLocalNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
+        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.localNginxClient, (proxyHost, record) -> {
+            record.setEnabledLocalNginx(proxyHost.isEnabled());
+            record.setLocalNginxRecord(proxyHost);
+            return proxyHost;
+        });
+    }
+
+    private void fetchAllNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap, NginxClient client, BiFunction<NginxProxyHostResponse, DnsRecord, NginxProxyHostResponse> function) {
+        var proxyHosts = client.getAllProxyHost(this.getLocalNginxJwtHeader())
+                                              .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get nginx proxy host"));
 
         proxyHosts.parallelStream().forEach(proxyHost -> {
             String url = String.format("%s://%s:%s", proxyHost.getForwardScheme(), proxyHost.getForwardHost(), proxyHost.getForwardPort());
@@ -124,8 +176,7 @@ public class DnsService {
                 record = recordMap.get(url);
             }
 
-            record.setEnabledLocalNginx(proxyHost.isEnabled());
-            record.setLocalNginxRecord(proxyHost);
+            function.apply(proxyHost, record);
         });
     }
 
@@ -138,16 +189,16 @@ public class DnsService {
     }
 
     private String getJwtHeader(String key, NginxClient client) {
-        var jwtMap = this.jwtCache.get(key);
-        if(jwtMap != null) {
-            return String.format("Bearer %s", jwtMap.get("jwt"));
+        var jwt = this.jwtCache.get(key);
+        if(jwt != null) {
+            return String.format("Bearer %s", jwt);
         }
 
-        String jwt = client.login(new NginxLoginRequest(this.nginxEmail, this.nginxPassword))
+        jwt = client.login(new NginxLoginRequest(this.nginxEmail, this.nginxPassword))
                                    .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to login to local nginx"))
                                    .getToken();
 
-        this.jwtCache.saveAndExpire(key, Map.of("jwt", jwt));
+        this.jwtCache.saveAndExpire(key, jwt);
 
         return String.format("Bearer %s", jwt);
     }
