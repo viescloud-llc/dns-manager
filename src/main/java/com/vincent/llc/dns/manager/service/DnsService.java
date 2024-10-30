@@ -20,6 +20,7 @@ import com.vincent.llc.dns.manager.feign.LocalNginxClient;
 import com.vincent.llc.dns.manager.feign.NginxClient;
 import com.vincent.llc.dns.manager.feign.PublicNginxClient;
 import com.vincent.llc.dns.manager.model.DnsRecord;
+import com.vincent.llc.dns.manager.model.cloudflare.CloudflareResult;
 import com.vincent.llc.dns.manager.model.nginx.NginxLoginRequest;
 import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostResponse;
 
@@ -91,14 +92,30 @@ public class DnsService {
         var dnsMap = new HashMap<String, String>();
         this.fetchAllPublicNginxDnsRecords(recordMap, dnsMap);
         this.fetchAllLocalNginxDnsRecords(recordMap, dnsMap);
+        this.fetchAllCloudflareViescloudDnsRecords(recordMap, dnsMap);
+        this.fetchAllCloudflareVieslocalDnsRecords(recordMap, dnsMap);
         
         this.dnsRecordsCache.saveAndExpire(KEY_RECORDS, recordMap);
         return recordMap;
     }
 
+    private void fetchAllCloudflareVieslocalDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.cloudflareVieslocalZoneId, (dns, record) -> {
+            record.getCloudflareViesLocalRecord().add(dns);
+            return record;
+        });
+    }
+
     private void fetchAllCloudflareViescloudDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        var list = this.cloudflareClient.getDNSList(cloudflareViescloudZoneId, cloudflareEmail, cloudflareKey, 1, 1000)
-                                        .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get Viescloud dns list from cloudflare"));
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.cloudflareViescloudZoneId, (dns, record) -> {
+            record.getCloudflareViescloudRecord().add(dns);
+            return record;
+        });
+    }
+
+    private void fetchAllCloudflareDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap, String cloudflareZoneId, BiFunction<CloudflareResult, DnsRecord, DnsRecord> function) {
+        var list = this.cloudflareClient.getDNSList(cloudflareZoneId, cloudflareEmail, cloudflareKey, 1, 1000)
+                                        .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get dns list from cloudflare with zone id: " + cloudflareZoneId));
 
         list.getResult().forEach(dns -> {
 
@@ -119,49 +136,29 @@ public class DnsService {
                 record = recordMap.get(url);
             }
 
-            record.getCloudflareViescloudRecord();
-
+            record = function.apply(dns, record);
         });
     }
 
     private void fetchAllPublicNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        var proxyHosts = this.publicNginxClient.getAllProxyHost(this.getPublicNginxJwtHeader())
-                                               .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get public nginx proxy host"));
-
-        proxyHosts.forEach(proxyHost -> {
-            String url = String.format("%s://%s:%s", proxyHost.getForwardScheme(), proxyHost.getForwardHost(), proxyHost.getForwardPort());
-            DnsRecord record = null;
-            
-            if(!recordMap.containsKey(url)) {
-                record = new DnsRecord();
-                record.setUri(URI.create(url));
-                recordMap.put(url, record);
-            }
-            else {
-                record = recordMap.get(url);
-            }
-
+        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.publicNginxClient, getPublicNginxJwtHeader(), (proxyHost, record) -> {
             record.setEnabledPublicNginx(proxyHost.isEnabled());
             record.setPublicNginxRecord(proxyHost);
-            
-            proxyHost.getDomainNames().forEach(domainName -> {
-                if(!dnsMap.containsKey(domainName))
-                    dnsMap.put(domainName, url);
-            });
+            return record;
         });
     }
 
     private void fetchAllLocalNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.localNginxClient, (proxyHost, record) -> {
+        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.localNginxClient, getLocalNginxJwtHeader(), (proxyHost, record) -> {
             record.setEnabledLocalNginx(proxyHost.isEnabled());
             record.setLocalNginxRecord(proxyHost);
-            return proxyHost;
+            return record;
         });
     }
 
-    private void fetchAllNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap, NginxClient client, BiFunction<NginxProxyHostResponse, DnsRecord, NginxProxyHostResponse> function) {
-        var proxyHosts = client.getAllProxyHost(this.getLocalNginxJwtHeader())
-                                              .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get nginx proxy host"));
+    private void fetchAllNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap, NginxClient client, String jwtHeader, BiFunction<NginxProxyHostResponse, DnsRecord, DnsRecord> function) {
+        var proxyHosts = client.getAllProxyHost(jwtHeader)
+                               .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get nginx proxy host"));
 
         proxyHosts.parallelStream().forEach(proxyHost -> {
             String url = String.format("%s://%s:%s", proxyHost.getForwardScheme(), proxyHost.getForwardHost(), proxyHost.getForwardPort());
@@ -176,7 +173,12 @@ public class DnsService {
                 record = recordMap.get(url);
             }
 
-            function.apply(proxyHost, record);
+            record = function.apply(proxyHost, record);
+
+            proxyHost.getDomainNames().forEach(domainName -> {
+                if(!dnsMap.containsKey(domainName))
+                    dnsMap.put(domainName, url);
+            });
         });
     }
 
