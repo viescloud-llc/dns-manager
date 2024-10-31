@@ -5,8 +5,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.vincent.llc.dns.manager.model.DnsRecord;
 import com.vincent.llc.dns.manager.service.DnsService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 
@@ -23,4 +26,10 @@ public class DnsController {
         return ResponseEntity.ok(records);
     }
     
+
+    @PatchMapping()
+    public ResponseEntity<?> patchDnsRecord(@RequestBody DnsRecord record) {
+        
+        return ResponseEntity.ok("");
+    }
 }

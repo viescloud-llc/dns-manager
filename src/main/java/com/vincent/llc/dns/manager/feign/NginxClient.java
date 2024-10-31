@@ -3,6 +3,7 @@ package com.vincent.llc.dns.manager.feign;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,5 +47,8 @@ public interface NginxClient {
     public Optional<Boolean> disableProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") String id);
 
     @PutMapping(value = "/api/nginx/proxy-hosts/{id}", produces = "application/json", consumes = "application/json")
-    public Optional<NginxProxyHostResponse> updateProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") String id, @RequestBody NginxProxyHostRequest request);
+    public Optional<NginxProxyHostResponse> updateProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") int id, @RequestBody NginxProxyHostRequest request);
+
+    @DeleteMapping(value = "/api/nginx/proxy-hosts/{id}")
+    public Optional<NginxProxyHostResponse> deleteProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") int id);
 }

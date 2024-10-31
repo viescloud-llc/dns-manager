@@ -4,28 +4,23 @@ import java.io.Serializable;
 import java.time.OffsetDateTime;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class CloudflareResult implements Serializable {
+public class CloudflareResult extends CloudflareRequest {
     private String id;
     private String zoneID;
     private String zoneName;
-    private String name;
-    private String type;
     private String content;
     private boolean proxiable;
-    private boolean proxied;
-    private long ttl;
     private Object settings;
     private Meta meta;
     private String comment;
-    private Object[] tags;
     private OffsetDateTime createdOn;
     private OffsetDateTime modifiedOn;
     private OffsetDateTime commentModifiedOn;

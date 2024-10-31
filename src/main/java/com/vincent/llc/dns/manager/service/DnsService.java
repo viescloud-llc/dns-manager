@@ -6,76 +6,39 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.viescloud.llc.viesspringutils.exception.HttpResponseThrowers;
-import com.viescloud.llc.viesspringutils.repository.DatabaseCall;
 import com.viescloud.llc.viesspringutils.util.DateTime;
-import com.vincent.llc.dns.manager.feign.CloudflareClient;
-import com.vincent.llc.dns.manager.feign.LocalNginxClient;
-import com.vincent.llc.dns.manager.feign.NginxClient;
-import com.vincent.llc.dns.manager.feign.PublicNginxClient;
 import com.vincent.llc.dns.manager.model.DnsRecord;
+import com.vincent.llc.dns.manager.model.cloudflare.CloudflareRequest;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareResult;
-import com.vincent.llc.dns.manager.model.nginx.NginxLoginRequest;
 import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostResponse;
 
 @Service
 public class DnsService {
-
-    private static final String KEY_RECORD_PREFIX = "com.vincent.llc.dns.manager.service.record";
-    private static final String KEY_RECORDS = "all";
-
-    private static final String KEY_JWT_PREFIX = "com.vincent.llc.dns.manager.service.jwt";
-    private static final String KEY_JWT_LOCAL_NGINX = "localNginx";
-    private static final String KEY_JWT_PUBLIC_NGINX = "publicNginx";
-    
-    @Autowired
-    private CloudflareClient cloudflareClient;
+    private static final String VIESCLOUD_DOMAIN = "viescloud.com";
+    private static final String VIESLOCAL_DOMAIN = "vieslocal.com";
 
     @Autowired
-    private LocalNginxClient localNginxClient;
+    private PublicNginxService publicNginxService;
 
     @Autowired
-    private PublicNginxClient publicNginxClient;
+    private LocalNginxService localNginxService;
 
-    @Value("${cloudflare.email}")
-    private String cloudflareEmail;
+    @Autowired
+    private ViescloudCloudflareService viescloudCloudflareService;
 
-    @Value("${cloudflare.key}")
-    private String cloudflareKey;
-
-    @Value("${cloudflare.viescloud.zoneId}")
-    private String cloudflareViescloudZoneId;
-
-    @Value("${cloudflare.vieslocal.zoneId}")
-    private String cloudflareVieslocalZoneId;
-
-    @Value("${nginx.email}")
-    private String nginxEmail;
-
-    @Value("${nginx.password}")
-    private String nginxPassword;
-
-    public DatabaseCall<String, Map<String, DnsRecord>, ?> dnsRecordsCache;
-    public DatabaseCall<String, String, ?> jwtCache;
-
-    public DnsService(DatabaseCall<String, Map<String, DnsRecord>, ?> dnsRecordsCache, DatabaseCall<String, String, ?> jwtCache) {
-        this.dnsRecordsCache = dnsRecordsCache;
-        this.dnsRecordsCache.init(KEY_RECORD_PREFIX);
-        this.dnsRecordsCache.setTTL(DateTime.ofMinutes(60));
-
-        this.jwtCache = jwtCache;
-        this.jwtCache.init(KEY_JWT_PREFIX);
-        this.jwtCache.setTTL(DateTime.ofDays(1));
-    }
+    @Autowired
+    private VieslocalCloudflareService vieslocalCloudflareService;
 
     public void clearDnsRecordsCache() {
-        this.dnsRecordsCache.deleteByKey(KEY_RECORDS);
+        this.publicNginxService.clearCache();
+        this.localNginxService.clearCache();
+        this.viescloudCloudflareService.clearCache();
+        this.vieslocalCloudflareService.clearCache();
     }
 
     public List<DnsRecord> getDnsRecordList() {
@@ -83,56 +46,48 @@ public class DnsService {
     }
 
     public Map<String, DnsRecord> getDnsRecordMap() {
-        Map<String, DnsRecord> recordMap = dnsRecordsCache.get(KEY_RECORDS);
-        if(recordMap != null) {
-            return recordMap;
-        }
-
-        recordMap = new HashMap<>();
+        var recordMap = new HashMap<String, DnsRecord>();
         var dnsMap = new HashMap<String, String>();
         this.fetchAllPublicNginxDnsRecords(recordMap, dnsMap);
         this.fetchAllLocalNginxDnsRecords(recordMap, dnsMap);
         this.fetchAllCloudflareViescloudDnsRecords(recordMap, dnsMap);
         this.fetchAllCloudflareVieslocalDnsRecords(recordMap, dnsMap);
-        
-        this.dnsRecordsCache.saveAndExpire(KEY_RECORDS, recordMap);
         return recordMap;
     }
 
     private void fetchAllCloudflareVieslocalDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.cloudflareVieslocalZoneId, (dns, record) -> {
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.vieslocalCloudflareService, (dns, record) -> {
             record.getCloudflareViesLocalRecord().add(dns);
             return record;
         });
     }
 
     private void fetchAllCloudflareViescloudDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.cloudflareViescloudZoneId, (dns, record) -> {
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.viescloudCloudflareService, (dns, record) -> {
             record.getCloudflareViescloudRecord().add(dns);
             return record;
         });
     }
 
-    private void fetchAllCloudflareDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap, String cloudflareZoneId, BiFunction<CloudflareResult, DnsRecord, DnsRecord> function) {
-        var list = this.cloudflareClient.getDNSList(cloudflareZoneId, cloudflareEmail, cloudflareKey, 1, 1000)
-                                        .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get dns list from cloudflare with zone id: " + cloudflareZoneId));
+    private void fetchAllCloudflareDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap,
+            CloudflareService cloudflareService, BiFunction<CloudflareResult, DnsRecord, DnsRecord> function) {
+        var list = cloudflareService.getAllCloudflareCnameRecord();
 
-        list.getResult().forEach(dns -> {
+        list.forEach(dns -> {
 
-            if(!dns.getType().toUpperCase().equals("CNAME") || !dnsMap.containsKey(dns.getName())) {
+            if (!dnsMap.containsKey(dns.getName())) {
                 return;
             }
 
             var url = dnsMap.get(dns.getName());
-            
+
             DnsRecord record = null;
-            
-            if(!recordMap.containsKey(url)) {
+
+            if (!recordMap.containsKey(url)) {
                 record = new DnsRecord();
                 record.setUri(URI.create(url));
                 recordMap.put(url, record);
-            }
-            else {
+            } else {
                 record = recordMap.get(url);
             }
 
@@ -141,67 +96,120 @@ public class DnsService {
     }
 
     private void fetchAllPublicNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.publicNginxClient, getPublicNginxJwtHeader(), (proxyHost, record) -> {
-            record.setEnabledPublicNginx(proxyHost.isEnabled());
+        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.publicNginxService, (proxyHost, record) -> {
             record.setPublicNginxRecord(proxyHost);
             return record;
         });
     }
 
     private void fetchAllLocalNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.localNginxClient, getLocalNginxJwtHeader(), (proxyHost, record) -> {
-            record.setEnabledLocalNginx(proxyHost.isEnabled());
+        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.localNginxService, (proxyHost, record) -> {
             record.setLocalNginxRecord(proxyHost);
             return record;
         });
     }
 
-    private void fetchAllNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap, NginxClient client, String jwtHeader, BiFunction<NginxProxyHostResponse, DnsRecord, DnsRecord> function) {
-        var proxyHosts = client.getAllProxyHost(jwtHeader)
-                               .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get nginx proxy host"));
+    private void fetchAllNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap,
+            NginxService service, BiFunction<NginxProxyHostResponse, DnsRecord, DnsRecord> function) {
+        var proxyHosts = service.getAllProxyHost();
 
         proxyHosts.parallelStream().forEach(proxyHost -> {
-            String url = String.format("%s://%s:%s", proxyHost.getForwardScheme(), proxyHost.getForwardHost(), proxyHost.getForwardPort());
+            String url = String.format("%s://%s:%s", proxyHost.getForwardScheme(), proxyHost.getForwardHost(),
+                    proxyHost.getForwardPort());
             DnsRecord record = null;
-            
-            if(!recordMap.containsKey(url)) {
+
+            if (!recordMap.containsKey(url)) {
                 record = new DnsRecord();
                 record.setUri(URI.create(url));
                 recordMap.put(url, record);
-            }
-            else {
+            } else {
                 record = recordMap.get(url);
             }
 
             record = function.apply(proxyHost, record);
 
             proxyHost.getDomainNames().forEach(domainName -> {
-                if(!dnsMap.containsKey(domainName))
+                if (!dnsMap.containsKey(domainName))
                     dnsMap.put(domainName, url);
             });
         });
     }
 
-    private String getLocalNginxJwtHeader() {
-        return getJwtHeader(KEY_JWT_LOCAL_NGINX, this.localNginxClient);
+    public void putDnsRecordList(List<DnsRecord> recordList) {
+        recordList.forEach(this::putDnsRecord);
     }
 
-    private String getPublicNginxJwtHeader() {
-        return getJwtHeader(KEY_JWT_PUBLIC_NGINX, this.publicNginxClient);
-    }
+    public void putDnsRecord(DnsRecord record) {
+        String uri = record.getUri().toString();
+        var publicNginxRecord = record.getPublicNginxRecord();
+        var localNginxRecord = record.getLocalNginxRecord();
 
-    private String getJwtHeader(String key, NginxClient client) {
-        var jwt = this.jwtCache.get(key);
-        if(jwt != null) {
-            return String.format("Bearer %s", jwt);
+        if (publicNginxRecord != null) {
+            this.putNginxRecord(uri, publicNginxRecord, publicNginxService);
+            this.putCloudflareRecord(publicNginxRecord, this.viescloudCloudflareService, VIESCLOUD_DOMAIN);
         }
 
-        jwt = client.login(new NginxLoginRequest(this.nginxEmail, this.nginxPassword))
-                                   .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to login to local nginx"))
-                                   .getToken();
-
-        this.jwtCache.saveAndExpire(key, jwt);
-
-        return String.format("Bearer %s", jwt);
+        if (localNginxRecord != null) {
+            this.putNginxRecord(uri, localNginxRecord, localNginxService);
+            this.putCloudflareRecord(localNginxRecord, this.vieslocalCloudflareService, VIESLOCAL_DOMAIN);
+        }
     }
+
+    private void putNginxRecord(String uri, NginxProxyHostResponse record, NginxService service) {
+        if (service.getProxyHostByUri(uri) == null)
+            service.createProxyHost(record);
+        else
+            service.putProxyHost(record);
+    }
+
+    private void putCloudflareRecord(NginxProxyHostResponse record, CloudflareService cloudflareService, String dns) {
+        if(ObjectUtils.isEmpty(record.getDomainNames())) {
+            return;
+        }
+
+        record.getDomainNames().forEach(domainName -> {
+            if (cloudflareService.getCloudflareCnameRecordByName(domainName) == null) {
+                var dateTime = DateTime.now().getDateTime();
+                var request = CloudflareRequest.builder()
+                        .name(domainName)
+                        .content(dns)
+                        .proxied(true)
+                        .ttl(1)
+                        .type("CNAME")
+                        .tags(List.of(record.getForwardHost(), dateTime))
+                        .comment(String.format("Auto-added by DNS Manager on: %s", dateTime))
+                        .build();
+    
+                cloudflareService.postCloudflareRecord(request);
+            }
+        });
+    }
+
+    public void deleteDnsRecord(String uri) {
+        var record = this.getDnsRecordMap().get(uri);
+        if (record != null) {
+            this.publicNginxService.deleteProxyHost(record.getPublicNginxRecord().getId());
+            this.localNginxService.deleteProxyHost(record.getLocalNginxRecord().getId());
+        }
+    }
+
+    public void cleanUnusedCloudflareCnameDns() { 
+        cleanUnusedCloudflareCnameDns(this.viescloudCloudflareService, this.publicNginxService);
+        cleanUnusedCloudflareCnameDns(this.vieslocalCloudflareService, this.localNginxService);
+    }
+
+    private void cleanUnusedCloudflareCnameDns(CloudflareService cloudflareService, NginxService publicNginxService) {
+        var cloudflareDnsResult = cloudflareService.getAllCloudflareCnameRecord();
+        var domainNames = publicNginxService.getAllDomainNameList();
+        
+        for (String domainName : domainNames) {
+            cloudflareDnsResult.removeIf(cloudflareDns -> cloudflareDns.getName().equals(domainName));
+        }
+        
+        cloudflareDnsResult.forEach(e -> {
+            cloudflareService.deleteCloudflareRecord(e.getId());
+        });
+    }
+
+
 }

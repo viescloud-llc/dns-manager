@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareResult;
-import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostRequest;
+import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,11 +19,9 @@ import lombok.NoArgsConstructor;
 @Builder
 public class DnsRecord implements Serializable {
     private URI uri;
-    private boolean enabledPublicNginx;
-    private boolean enabledLocalNginx;
 
-    private NginxProxyHostRequest localNginxRecord;
-    private NginxProxyHostRequest publicNginxRecord;
+    private NginxProxyHostResponse localNginxRecord;
+    private NginxProxyHostResponse publicNginxRecord;
 
     @Builder.Default
     private List<CloudflareResult> cloudflareViescloudRecord = new ArrayList<>();
