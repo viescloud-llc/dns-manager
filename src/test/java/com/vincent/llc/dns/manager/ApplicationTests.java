@@ -27,7 +27,7 @@ class ApplicationTests {
 		// var records = this.dnsService.getDnsRecordList();
 		// System.out.println(Json.builder().target(records).build().tryToJson());
 
-		var list = publicNginxService.getAllDomainNameList();
+		var list = publicNginxService.getAllCertificate();
 		System.out.println(Json.builder().target(list).build().tryToJson());
 	}
 
