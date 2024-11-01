@@ -23,7 +23,7 @@ public interface NginxClient {
     public Optional<NginxHealthCheckResponse> healthCheck(@RequestHeader("Authorization") String token);
 
     @GetMapping(value = "/api/nginx/certificates", produces = "application/json")
-    public Optional<NginxCertificateResponse> getAllCertificate(@RequestHeader("Authorization") String token);
+    public Optional<List<NginxCertificateResponse>> getAllCertificate(@RequestHeader("Authorization") String token);
 
     @GetMapping(value = "/api/nginx/proxy-hosts/{id}", produces = "application/json")
     public Optional<NginxProxyHostResponse> getProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") String id);

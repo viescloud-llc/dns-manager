@@ -11,16 +11,18 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.viescloud.llc.viesspringutils.exception.HttpResponseThrowers;
 import com.viescloud.llc.viesspringutils.util.DateTime;
 import com.vincent.llc.dns.manager.model.DnsRecord;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareRequest;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareResult;
+import com.vincent.llc.dns.manager.model.nginx.NginxCertificateResponse;
 import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostResponse;
 
 @Service
 public class DnsService {
-    private static final String VIESCLOUD_DOMAIN = "viescloud.com";
-    private static final String VIESLOCAL_DOMAIN = "vieslocal.com";
+    public static final String VIESCLOUD_DOMAIN = "viescloud.com";
+    public static final String VIESLOCAL_DOMAIN = "vieslocal.com";
 
     @Autowired
     private PublicNginxService publicNginxService;
@@ -53,6 +55,18 @@ public class DnsService {
         this.fetchAllCloudflareViescloudDnsRecords(recordMap, dnsMap);
         this.fetchAllCloudflareVieslocalDnsRecords(recordMap, dnsMap);
         return recordMap;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<NginxCertificateResponse> getAllNginxCertificate(String type) {
+        switch (type) {
+            case VIESCLOUD_DOMAIN:
+                return this.publicNginxService.getAllCertificate();
+            case VIESLOCAL_DOMAIN:
+                return this.localNginxService.getAllCertificate();
+            default:
+                return (List<NginxCertificateResponse>) HttpResponseThrowers.throwBadRequest(type + " is not a valid domain name.");
+        }
     }
 
     private void fetchAllCloudflareVieslocalDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {

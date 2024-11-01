@@ -5,6 +5,7 @@ import java.util.List;
 import com.viescloud.llc.viesspringutils.exception.HttpResponseThrowers;
 import com.viescloud.llc.viesspringutils.repository.DatabaseCall;
 import com.vincent.llc.dns.manager.feign.NginxClient;
+import com.vincent.llc.dns.manager.model.nginx.NginxCertificateResponse;
 import com.vincent.llc.dns.manager.model.nginx.NginxLoginRequest;
 import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostRequest;
 import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostResponse;
@@ -28,6 +29,11 @@ public abstract class NginxService {
     public void clearCache() {
         var proxyHosts = this.getAllProxyHost();
         proxyHosts.parallelStream().forEach(this::deleteProxyHostCache);
+    }
+
+    public List<NginxCertificateResponse> getAllCertificate() {
+        return this.nginxClient.getAllCertificate(this.getJwtHeader())
+                               .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get nginx certificates"));
     }
 
     public List<NginxProxyHostResponse> getAllProxyHost() {
@@ -109,7 +115,7 @@ public abstract class NginxService {
         if(response.getId() == 0) {
             HttpResponseThrowers.throwBadRequest("Can't update nginx proxy host without id");
         }
-        
+
         NginxProxyHostRequest request = response;
         this.putProxyHost(request, response.getId());
     }
