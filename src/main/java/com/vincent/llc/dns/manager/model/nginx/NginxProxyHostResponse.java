@@ -1,7 +1,5 @@
 package com.vincent.llc.dns.manager.model.nginx;
 
-import java.time.OffsetDateTime;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.viescloud.llc.viesspringutils.config.json.JsonIntOrBooleanDeserializer;
