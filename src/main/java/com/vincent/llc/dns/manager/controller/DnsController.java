@@ -7,8 +7,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.vincent.llc.dns.manager.model.DnsRecord;
 import com.vincent.llc.dns.manager.service.DnsService;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -25,11 +27,16 @@ public class DnsController {
         var records = map ? dnsService.getDnsRecordMap() : dnsService.getDnsRecordList();
         return ResponseEntity.ok(records);
     }
-    
 
-    @PatchMapping()
+    @PutMapping()
     public ResponseEntity<?> patchDnsRecord(@RequestBody DnsRecord record) {
-        
-        return ResponseEntity.ok("");
+        this.dnsService.putDnsRecord(record);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping()
+    public ResponseEntity<?> deleteDnsRecord(@RequestParam String uri) {
+        this.dnsService.deleteDnsRecord(uri);
+        return ResponseEntity.ok().build();
     }
 }
