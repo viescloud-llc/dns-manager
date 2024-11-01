@@ -26,7 +26,8 @@ public abstract class NginxService {
     protected DatabaseCall<String, NginxProxyHostResponse, ?> proxyHostCache;
 
     public void clearCache() {
-        this.jwtCache.deleteByKey(PROXY_HOSTS_KEY);
+        var proxyHosts = this.getAllProxyHost();
+        proxyHosts.parallelStream().forEach(this::deleteProxyHostCache);
     }
 
     public List<NginxProxyHostResponse> getAllProxyHost() {
@@ -38,7 +39,7 @@ public abstract class NginxService {
         proxyHosts = this.nginxClient.getAllProxyHost(this.getJwtHeader())
                                      .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get nginx proxy hosts"));
 
-        proxyHosts.forEach(this::saveProxyHostCache);
+        proxyHosts.parallelStream().forEach(this::saveProxyHostCache);
         this.proxyHostsCache.saveAndExpire(PROXY_HOSTS_KEY, proxyHosts);
 
         return proxyHosts;
@@ -87,6 +88,8 @@ public abstract class NginxService {
     public void createProxyHost(NginxProxyHostRequest request) {
         this.nginxClient.createProxyHost(this.getJwtHeader(), request)
                          .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to create nginx proxy host"));
+        
+        this.proxyHostsCache.deleteByKey(PROXY_HOSTS_KEY);
     }
 
     public void createProxyHost(NginxProxyHostResponse response) {
@@ -103,6 +106,10 @@ public abstract class NginxService {
     }
 
     public void putProxyHost(NginxProxyHostResponse response) {
+        if(response.getId() == 0) {
+            HttpResponseThrowers.throwBadRequest("Can't update nginx proxy host without id");
+        }
+        
         NginxProxyHostRequest request = response;
         this.putProxyHost(request, response.getId());
     }
@@ -118,9 +125,9 @@ public abstract class NginxService {
     // ------------------Helper-------------------
 
     private void saveProxyHostCache(NginxProxyHostResponse response) {
-        this.proxyHostsCache.deleteByKey(PROXY_HOSTS_KEY);
         this.proxyHostCache.saveAndExpire(getUri(response), response);
         this.proxyHostCache.saveAndExpire(String.valueOf(response.getId()), response);
+        this.proxyHostsCache.deleteByKey(PROXY_HOSTS_KEY);
     }
 
     private void deleteProxyHostCache(NginxProxyHostResponse response) {

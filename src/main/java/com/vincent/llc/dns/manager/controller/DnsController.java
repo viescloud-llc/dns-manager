@@ -34,6 +34,12 @@ public class DnsController {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/clear")
+    public ResponseEntity<?> clearDnsRecordsCache() {
+        this.dnsService.clearDnsRecordsCache();
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping()
     public ResponseEntity<?> deleteDnsRecord(@RequestParam String uri) {
         this.dnsService.deleteDnsRecord(uri);
