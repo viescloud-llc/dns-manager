@@ -127,7 +127,7 @@ public class DnsService {
             NginxService service, BiFunction<NginxProxyHostResponse, DnsRecord, DnsRecord> function) {
         var proxyHosts = service.getAllProxyHost();
 
-        proxyHosts.parallelStream().forEach(proxyHost -> {
+        proxyHosts.forEach(proxyHost -> {
             String url = String.format("%s://%s:%s", proxyHost.getForwardScheme(), proxyHost.getForwardHost(),
                     proxyHost.getForwardPort());
             DnsRecord record = null;
