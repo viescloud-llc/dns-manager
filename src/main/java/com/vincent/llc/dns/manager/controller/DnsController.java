@@ -40,7 +40,7 @@ public class DnsController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/clear")
+    @DeleteMapping("/clear-cache")
     public ResponseEntity<?> clearDnsRecordsCache() {
         this.dnsService.clearDnsRecordsCache();
         return ResponseEntity.ok().build();
