@@ -160,12 +160,12 @@ public class DnsService {
 
         if (publicNginxRecord != null) {
             this.putNginxRecord(uri, publicNginxRecord, publicNginxService);
-            this.putCloudflareRecord(publicNginxRecord, this.viescloudCloudflareService, VIESCLOUD_DOMAIN);
+            this.putCloudflareRecord(publicNginxRecord, this.viescloudCloudflareService, VIESCLOUD_DOMAIN, true);
         }
 
         if (localNginxRecord != null) {
             this.putNginxRecord(uri, localNginxRecord, localNginxService);
-            this.putCloudflareRecord(localNginxRecord, this.vieslocalCloudflareService, VIESLOCAL_DOMAIN);
+            this.putCloudflareRecord(localNginxRecord, this.vieslocalCloudflareService, VIESLOCAL_DOMAIN, false);
         }
     }
 
@@ -176,7 +176,7 @@ public class DnsService {
             service.putProxyHost(record);
     }
 
-    private void putCloudflareRecord(NginxProxyHostResponse record, CloudflareService cloudflareService, String dns) {
+    private void putCloudflareRecord(NginxProxyHostResponse record, CloudflareService cloudflareService, String dns, boolean proxied) {
         if(ObjectUtils.isEmpty(record.getDomainNames())) {
             return;
         }
@@ -188,7 +188,7 @@ public class DnsService {
                 var request = CloudflareRequest.builder()
                         .name(domainName)
                         .content(dns)
-                        .proxied(true)
+                        .proxied(proxied)
                         .ttl(1)
                         .type("CNAME")
                         .comment(String.format("Auto-added by DNS Manager on: %s", dateTime))
