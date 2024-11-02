@@ -212,9 +212,9 @@ public class DnsService {
         cleanUnusedCloudflareCnameDns(this.vieslocalCloudflareService, this.localNginxService);
     }
 
-    private void cleanUnusedCloudflareCnameDns(CloudflareService cloudflareService, NginxService publicNginxService) {
-        var cloudflareDnsResult = cloudflareService.getAllCloudflareCnameRecord();
-        var domainNames = publicNginxService.getAllDomainNameList();
+    private void cleanUnusedCloudflareCnameDns(CloudflareService cloudflareService, NginxService nginxService) {
+        var cloudflareDnsResult = new ArrayList<>(cloudflareService.getAllCloudflareCnameRecord());
+        var domainNames = new ArrayList<>(nginxService.getAllDomainNameList());
         
         for (String domainName : domainNames) {
             cloudflareDnsResult.removeIf(cloudflareDns -> cloudflareDns.getName().equals(domainName));

@@ -31,4 +31,15 @@ class ApplicationTests {
 		System.out.println(Json.builder().target(list).build().tryToJson());
 	}
 
+	/**
+	 * Test clearing unused cloudflare cname dns records.
+	 * 
+	 * This test will first clear the dns records cache and then clean unused cloudflare cname dns records.
+	 */
+	@Test
+	public void testClearUnusedDns() {
+		this.dnsService.clearDnsRecordsCache();
+		this.dnsService.cleanUnusedCloudflareCnameDns();
+	}
+
 }
