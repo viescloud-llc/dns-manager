@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.viescloud.llc.viesspringutils.config.json.JsonIntOrBooleanDeserializer;
@@ -14,6 +15,7 @@ import com.viescloud.llc.viesspringutils.config.json.JsonIntOrBooleanDeserialize
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class NginxProxyHostRequest implements Serializable {
 
     @JsonProperty("domain_names")
@@ -41,7 +43,7 @@ public class NginxProxyHostRequest implements Serializable {
     private boolean allowWebsocketUpgrade;
 
     @JsonProperty("access_list_id")
-    private String accessListID;
+    private Integer accessListID;
 
     @JsonProperty("certificate_id")
     private long certificateID;

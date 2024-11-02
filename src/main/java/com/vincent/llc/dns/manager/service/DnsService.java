@@ -183,14 +183,14 @@ public class DnsService {
 
         record.getDomainNames().forEach(domainName -> {
             if (cloudflareService.getCloudflareCnameRecordByName(domainName) == null) {
-                var dateTime = DateTime.now().getDateTime();
+                var now = DateTime.now();
+                var dateTime = String.format("%s-%s-%s at %s-%s-%s ETC", now.getMonth(), now.getDay(), now.getYear(), now.getHour(), now.getMinute(), now.getSecond());
                 var request = CloudflareRequest.builder()
                         .name(domainName)
                         .content(dns)
                         .proxied(true)
                         .ttl(1)
                         .type("CNAME")
-                        .tags(List.of(record.getForwardHost(), dateTime))
                         .comment(String.format("Auto-added by DNS Manager on: %s", dateTime))
                         .build();
     

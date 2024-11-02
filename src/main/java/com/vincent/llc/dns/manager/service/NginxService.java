@@ -1,9 +1,11 @@
 package com.vincent.llc.dns.manager.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.viescloud.llc.viesspringutils.exception.HttpResponseThrowers;
 import com.viescloud.llc.viesspringutils.repository.DatabaseCall;
+import com.viescloud.llc.viesspringutils.util.JsonUtils;
 import com.vincent.llc.dns.manager.feign.NginxClient;
 import com.vincent.llc.dns.manager.model.nginx.NginxCertificateResponse;
 import com.vincent.llc.dns.manager.model.nginx.NginxLoginRequest;
@@ -99,7 +101,8 @@ public abstract class NginxService {
     }
 
     public void createProxyHost(NginxProxyHostResponse response) {
-        NginxProxyHostRequest request = response;
+        NginxProxyHostRequest request = Optional.ofNullable(JsonUtils.tryClone(response, NginxProxyHostRequest.class))
+                                                .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to cast request"));
         this.createProxyHost(request);
     }
 
@@ -116,7 +119,8 @@ public abstract class NginxService {
             HttpResponseThrowers.throwBadRequest("Can't update nginx proxy host without id");
         }
 
-        NginxProxyHostRequest request = response;
+        NginxProxyHostRequest request = Optional.ofNullable(JsonUtils.tryClone(response, NginxProxyHostRequest.class))
+                                                .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to cast request"));
         this.putProxyHost(request, response.getId());
     }
 

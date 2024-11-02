@@ -1,9 +1,11 @@
 package com.vincent.llc.dns.manager.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.viescloud.llc.viesspringutils.exception.HttpResponseThrowers;
 import com.viescloud.llc.viesspringutils.repository.DatabaseCall;
+import com.viescloud.llc.viesspringutils.util.JsonUtils;
 import com.vincent.llc.dns.manager.feign.CloudflareClient;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareRequest;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareResult;
@@ -75,7 +77,8 @@ public abstract class CloudflareService {
     }
 
     public void postCloudflareRecord(CloudflareResult result) {
-        CloudflareRequest request = result;
+        CloudflareRequest request = Optional.ofNullable(JsonUtils.tryClone(result, CloudflareRequest.class))
+                                            .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to cast request"));
         this.postCloudflareRecord(request);
     }
 
@@ -91,7 +94,8 @@ public abstract class CloudflareService {
         if(result.getId() == null) {
             HttpResponseThrowers.throwBadRequest("Can't update cloudflare record without id");
         }
-        CloudflareRequest request = result;
+        CloudflareRequest request = Optional.ofNullable(JsonUtils.tryClone(result, CloudflareRequest.class))
+                                            .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to cast request"));
         this.putCloudflareRecord(request, result.getId());
     }
 
