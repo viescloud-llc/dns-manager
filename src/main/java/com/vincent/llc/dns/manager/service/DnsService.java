@@ -48,6 +48,7 @@ public class DnsService {
     }
 
     public Map<String, DnsRecord> getDnsRecordMap() {
+        this.syncDnsRecord();
         var recordMap = new HashMap<String, DnsRecord>();
         var dnsMap = new HashMap<String, String>();
         this.fetchAllPublicNginxDnsRecords(recordMap, dnsMap);
@@ -182,21 +183,25 @@ public class DnsService {
         }
 
         record.getDomainNames().forEach(domainName -> {
-            if (cloudflareService.getCloudflareCnameRecordByName(domainName) == null) {
-                var now = DateTime.now();
-                var dateTime = String.format("%s-%s-%s at %s-%s-%s ETC", now.getMonth(), now.getDay(), now.getYear(), now.getHour(), now.getMinute(), now.getSecond());
-                var request = CloudflareRequest.builder()
-                        .name(domainName)
-                        .content(dns)
-                        .proxied(proxied)
-                        .ttl(1)
-                        .type("CNAME")
-                        .comment(String.format("Auto-added by DNS Manager on: %s", dateTime))
-                        .build();
-    
-                cloudflareService.postCloudflareRecord(request);
-            }
+            putCloudflareDns(cloudflareService, dns, proxied, domainName);
         });
+    }
+
+    private void putCloudflareDns(CloudflareService cloudflareService, String dns, boolean proxied, String domainName) {
+        if (cloudflareService.getCloudflareCnameRecordByName(domainName) == null) {
+            var now = DateTime.now();
+            var dateTime = String.format("%s-%s-%s at %s-%s-%s ETC", now.getMonth(), now.getDay(), now.getYear(), now.getHour(), now.getMinute(), now.getSecond());
+            var request = CloudflareRequest.builder()
+                    .name(domainName)
+                    .content(dns)
+                    .proxied(proxied)
+                    .ttl(1)
+                    .type("CNAME")
+                    .comment(String.format("Auto-added by DNS Manager on: %s", dateTime))
+                    .build();
+   
+            cloudflareService.postCloudflareRecord(request);
+        }
     }
 
     public void deleteDnsRecord(String uri) {
@@ -217,7 +222,7 @@ public class DnsService {
         var domainNames = new ArrayList<>(nginxService.getAllDomainNameList());
         
         for (String domainName : domainNames) {
-            cloudflareDnsResult.removeIf(cloudflareDns -> cloudflareDns.getName().equals(domainName));
+            cloudflareDnsResult.removeIf(cloudflareDns -> cloudflareDns.getName().equalsIgnoreCase(domainName));
         }
         
         cloudflareDnsResult.forEach(e -> {
@@ -225,5 +230,25 @@ public class DnsService {
         });
     }
 
+    private void syncDnsRecord() {
+        this.syncDnsRecord(this.viescloudCloudflareService, this.publicNginxService);
+        this.syncDnsRecord(this.vieslocalCloudflareService, this.localNginxService);
+    }
 
+    private void syncDnsRecord(CloudflareService cloudflareService, NginxService nginxService) {
+        var cloudflareDnsResult = new ArrayList<>(cloudflareService.getAllCloudflareCnameRecord());
+        var domainNames = new ArrayList<>(nginxService.getAllDomainNameList());
+
+        for (String domainName : domainNames) {
+            var cloudflareDns = cloudflareDnsResult.parallelStream().filter(e -> e.getName().equalsIgnoreCase(domainName)).findFirst().orElse(null);
+            if (cloudflareDns == null) {
+                if(domainName.endsWith(VIESCLOUD_DOMAIN)) {
+                    this.putCloudflareDns(cloudflareService, VIESCLOUD_DOMAIN, true, domainName);
+                }
+                else if(domainName.endsWith(VIESLOCAL_DOMAIN)) {
+                    this.putCloudflareDns(cloudflareService, VIESLOCAL_DOMAIN, false, domainName);
+                }
+            }
+        }
+    }
 }
