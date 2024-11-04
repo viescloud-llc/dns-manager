@@ -55,8 +55,11 @@ public class DnsController {
     }
 
     @DeleteMapping()
-    public ResponseEntity<?> deleteDnsRecord(@RequestParam String uri) {
+    public ResponseEntity<?> deleteDnsRecord(@RequestParam String uri, @RequestParam(required = false, defaultValue = "false") boolean cleanUnusedCloudflareCnameDns) {
         this.dnsService.deleteDnsRecord(uri);
+        if (cleanUnusedCloudflareCnameDns) {
+            this.dnsService.cleanUnusedCloudflareCnameDns();
+        }
         return ResponseEntity.ok().build();
     }
 }
