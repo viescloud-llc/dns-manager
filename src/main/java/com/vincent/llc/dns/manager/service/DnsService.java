@@ -223,7 +223,7 @@ public class DnsService {
 
     private void deleteNginxRecord(NginxService service, NginxProxyHostResponse response) {
         if(response != null && response.getId() != 0)
-            this.publicNginxService.deleteProxyHost(response.getId());
+            service.deleteProxyHost(response.getId());
     }
 
     public void cleanUnusedCloudflareCnameDns() { 
