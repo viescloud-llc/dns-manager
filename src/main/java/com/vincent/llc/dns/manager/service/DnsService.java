@@ -156,6 +156,7 @@ public class DnsService {
 
     public void putDnsRecord(DnsRecord record) {
         String uri = record.getUri().toString();
+        var currentDnsRecord = this.getDnsRecordMap().get(uri);
         var publicNginxRecord = record.getPublicNginxRecord();
         var localNginxRecord = record.getLocalNginxRecord();
 
@@ -167,6 +168,14 @@ public class DnsService {
         if (localNginxRecord != null) {
             this.putNginxRecord(uri, localNginxRecord, localNginxService);
             this.putCloudflareRecord(localNginxRecord, this.vieslocalCloudflareService, VIESLOCAL_DOMAIN, false);
+        }
+
+        if (currentDnsRecord.getPublicNginxRecord() != null && publicNginxRecord == null) {
+            this.deleteNginxRecord(this.localNginxService, currentDnsRecord.getPublicNginxRecord());
+        }
+
+        if (currentDnsRecord.getLocalNginxRecord() != null && localNginxRecord == null) {
+            this.deleteNginxRecord(this.localNginxService, currentDnsRecord.getLocalNginxRecord());
         }
     }
 
@@ -207,12 +216,14 @@ public class DnsService {
     public void deleteDnsRecord(String uri) {
         var record = this.getDnsRecordMap().get(uri);
         if (record != null) {
-            if(record.getPublicNginxRecord() != null && record.getPublicNginxRecord().getId() != 0)
-                this.publicNginxService.deleteProxyHost(record.getPublicNginxRecord().getId());
-
-            if(record.getLocalNginxRecord() != null && record.getLocalNginxRecord().getId() != 0)
-                this.localNginxService.deleteProxyHost(record.getLocalNginxRecord().getId());
+            deleteNginxRecord(this.publicNginxService, record.getPublicNginxRecord());
+            deleteNginxRecord(this.localNginxService, record.getLocalNginxRecord());
         }
+    }
+
+    private void deleteNginxRecord(NginxService service, NginxProxyHostResponse response) {
+        if(response != null && response.getId() != 0)
+            this.publicNginxService.deleteProxyHost(response.getId());
     }
 
     public void cleanUnusedCloudflareCnameDns() { 
