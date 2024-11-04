@@ -173,10 +173,10 @@ public class DnsService {
         if (localNginxRecord != null)
             this.putDnsRecord(uri, localNginxRecord, this.getDnsPackage(VIESLOCAL_DOMAIN));
 
-        if (currentDnsRecord.getPublicNginxRecord() != null && publicNginxRecord == null)
+        if (currentDnsRecord != null && currentDnsRecord.getPublicNginxRecord() != null && publicNginxRecord == null)
             this.getDnsPackage(VIESCLOUD_DOMAIN).getNginxService().deleteProxyHostByUri(uri);
 
-        if (currentDnsRecord.getLocalNginxRecord() != null && localNginxRecord == null)
+        if (currentDnsRecord != null && currentDnsRecord.getLocalNginxRecord() != null && localNginxRecord == null)
             this.getDnsPackage(VIESLOCAL_DOMAIN).getNginxService().deleteProxyHostByUri(uri);
     }
 
