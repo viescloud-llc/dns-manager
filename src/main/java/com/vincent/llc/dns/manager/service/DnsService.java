@@ -207,8 +207,11 @@ public class DnsService {
     public void deleteDnsRecord(String uri) {
         var record = this.getDnsRecordMap().get(uri);
         if (record != null) {
-            this.publicNginxService.deleteProxyHost(record.getPublicNginxRecord().getId());
-            this.localNginxService.deleteProxyHost(record.getLocalNginxRecord().getId());
+            if(record.getPublicNginxRecord() != null && record.getPublicNginxRecord().getId() != 0)
+                this.publicNginxService.deleteProxyHost(record.getPublicNginxRecord().getId());
+
+            if(record.getLocalNginxRecord() != null && record.getLocalNginxRecord().getId() != 0)
+                this.localNginxService.deleteProxyHost(record.getLocalNginxRecord().getId());
         }
     }
 

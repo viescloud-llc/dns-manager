@@ -11,6 +11,7 @@ import com.vincent.llc.dns.manager.model.cloudflare.CloudflareRequest;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareResult;
 import com.vincent.llc.dns.manager.service.DnsService;
 import com.vincent.llc.dns.manager.service.PublicNginxService;
+import com.vincent.llc.dns.manager.controller.DnsController;
 
 @SpringBootTest(classes = Application.class)
 class ApplicationTests {
@@ -20,6 +21,9 @@ class ApplicationTests {
 
 	@Autowired
 	private PublicNginxService publicNginxService;
+
+	@Autowired
+	private DnsController dnsController;
 
 	// @Test
 	public void dnsServiceTest() {
@@ -31,15 +35,17 @@ class ApplicationTests {
 		System.out.println(Json.builder().target(list).build().tryToJson());
 	}
 
-	/**
-	 * Test clearing unused cloudflare cname dns records.
-	 * 
-	 * This test will first clear the dns records cache and then clean unused cloudflare cname dns records.
-	 */
-	@Test
+
+	// @Test
 	public void testClearUnusedDns() {
 		this.dnsService.clearDnsRecordsCache();
 		this.dnsService.cleanUnusedCloudflareCnameDns();
+	}
+
+	// @Test
+	public void testDelete() {
+		this.dnsService.clearDnsRecordsCache();
+		this.dnsController.deleteDnsRecord("http://111.111.111.123:123", true);
 	}
 
 }

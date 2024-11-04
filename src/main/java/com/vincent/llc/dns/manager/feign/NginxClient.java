@@ -50,5 +50,5 @@ public interface NginxClient {
     public Optional<NginxProxyHostResponse> updateProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") int id, @RequestBody NginxProxyHostRequest request);
 
     @DeleteMapping(value = "/api/nginx/proxy-hosts/{id}")
-    public Optional<NginxProxyHostResponse> deleteProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") int id);
+    public Optional<Boolean> deleteProxyHost(@RequestHeader("Authorization") String token, @PathVariable("id") int id);
 }
