@@ -58,7 +58,7 @@ public abstract class CloudflareService {
             return result;
         }
 
-        return this.getAllCloudflareCnameRecord().parallelStream().filter(r -> r.getName().equals(name)).findFirst().orElse(null);
+        return this.getAllCloudflareCnameRecord().parallelStream().filter(r -> r.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 
     public CloudflareResult getCloudflareCnameRecordById(String id) {
