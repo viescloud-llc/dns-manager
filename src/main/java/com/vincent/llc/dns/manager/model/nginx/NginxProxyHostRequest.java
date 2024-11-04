@@ -67,6 +67,7 @@ public class NginxProxyHostRequest implements Serializable {
     private NginxMeta meta;
 
     @JsonProperty("advanced_config")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String advancedConfig;
 
     private List<NginxLocation> locations;
