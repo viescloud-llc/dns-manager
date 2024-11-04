@@ -171,7 +171,7 @@ public class DnsService {
         }
 
         if (currentDnsRecord.getPublicNginxRecord() != null && publicNginxRecord == null) {
-            this.deleteNginxRecord(this.localNginxService, currentDnsRecord.getPublicNginxRecord());
+            this.deleteNginxRecord(this.publicNginxService, currentDnsRecord.getPublicNginxRecord());
         }
 
         if (currentDnsRecord.getLocalNginxRecord() != null && localNginxRecord == null) {
