@@ -8,11 +8,11 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.viescloud.llc.viesspringutils.exception.HttpResponseThrowers;
 import com.viescloud.llc.viesspringutils.util.DateTime;
+import com.vincent.llc.dns.manager.model.DnsPackage;
 import com.vincent.llc.dns.manager.model.DnsRecord;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareRequest;
 import com.vincent.llc.dns.manager.model.cloudflare.CloudflareResult;
@@ -24,23 +24,34 @@ public class DnsService {
     public static final String VIESCLOUD_DOMAIN = "viescloud.com";
     public static final String VIESLOCAL_DOMAIN = "vieslocal.com";
 
-    @Autowired
-    private PublicNginxService publicNginxService;
+    private List<DnsPackage> dnsPackages;
 
-    @Autowired
-    private LocalNginxService localNginxService;
-
-    @Autowired
-    private ViescloudCloudflareService viescloudCloudflareService;
-
-    @Autowired
-    private VieslocalCloudflareService vieslocalCloudflareService;
+    public DnsService(
+        PublicNginxService publicNginxService,
+        LocalNginxService localNginxService,
+        ViescloudCloudflareService viescloudCloudflareService,
+        VieslocalCloudflareService vieslocalCloudflareService
+    ) {
+        this.dnsPackages = new ArrayList<>();
+        this.dnsPackages.add(new DnsPackage(publicNginxService, viescloudCloudflareService, VIESCLOUD_DOMAIN, true));
+        this.dnsPackages.add(new DnsPackage(localNginxService, vieslocalCloudflareService, VIESLOCAL_DOMAIN, false));
+    }
 
     public void clearDnsRecordsCache() {
-        this.publicNginxService.clearCache();
-        this.localNginxService.clearCache();
-        this.viescloudCloudflareService.clearCache();
-        this.vieslocalCloudflareService.clearCache();
+        this.dnsPackages.forEach(pack -> {
+            pack.getNginxService().clearCache();
+            pack.getCloudflareService().clearCache();
+        });
+    }
+
+    private DnsPackage getDnsPackage(String domainName) {
+        return this.dnsPackages.parallelStream().filter(p -> p.getMainDomainName().equals(domainName)).findFirst()  
+                               .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get dns package"));
+    }
+
+    private DnsPackage getDnsPackageEndWith(String domainName) {
+        return this.dnsPackages.parallelStream().filter(p -> p.getMainDomainName().endsWith(domainName)).findFirst()  
+                               .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to get dns package"));
     }
 
     public List<DnsRecord> getDnsRecordList() {
@@ -51,6 +62,7 @@ public class DnsService {
         this.syncDnsRecord();
         var recordMap = new HashMap<String, DnsRecord>();
         var dnsMap = new HashMap<String, String>();
+
         this.fetchAllPublicNginxDnsRecords(recordMap, dnsMap);
         this.fetchAllLocalNginxDnsRecords(recordMap, dnsMap);
         this.fetchAllCloudflareViescloudDnsRecords(recordMap, dnsMap);
@@ -58,27 +70,22 @@ public class DnsService {
         return recordMap;
     }
 
-    @SuppressWarnings("unchecked")
     public List<NginxCertificateResponse> getAllNginxCertificate(String type) {
-        switch (type) {
-            case VIESCLOUD_DOMAIN:
-                return this.publicNginxService.getAllCertificate();
-            case VIESLOCAL_DOMAIN:
-                return this.localNginxService.getAllCertificate();
-            default:
-                return (List<NginxCertificateResponse>) HttpResponseThrowers.throwBadRequest(type + " is not a valid domain name.");
-        }
+        var pack = this.dnsPackages.parallelStream().filter(p -> p.getMainDomainName().equalsIgnoreCase(type)).findFirst()  
+                                   .orElseThrow(() -> HttpResponseThrowers.throwBadRequestException(type + " is not a valid domain name."));
+
+        return pack.getNginxService().getAllCertificate();
     }
 
     private void fetchAllCloudflareVieslocalDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.vieslocalCloudflareService, (dns, record) -> {
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESCLOUD_DOMAIN).getCloudflareService(), (dns, record) -> {
             record.getCloudflareViesLocalRecord().add(dns);
             return record;
         });
     }
 
     private void fetchAllCloudflareViescloudDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.viescloudCloudflareService, (dns, record) -> {
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESLOCAL_DOMAIN).getCloudflareService(), (dns, record) -> {
             record.getCloudflareViescloudRecord().add(dns);
             return record;
         });
@@ -111,14 +118,14 @@ public class DnsService {
     }
 
     private void fetchAllPublicNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.publicNginxService, (proxyHost, record) -> {
+        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESCLOUD_DOMAIN).getNginxService(), (proxyHost, record) -> {
             record.setPublicNginxRecord(proxyHost);
             return record;
         });
     }
 
     private void fetchAllLocalNginxDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.localNginxService, (proxyHost, record) -> {
+        this.fetchAllNginxDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESLOCAL_DOMAIN).getNginxService(), (proxyHost, record) -> {
             record.setLocalNginxRecord(proxyHost);
             return record;
         });
@@ -160,30 +167,30 @@ public class DnsService {
         var publicNginxRecord = record.getPublicNginxRecord();
         var localNginxRecord = record.getLocalNginxRecord();
 
-        if (publicNginxRecord != null) {
-            this.putNginxRecord(uri, publicNginxRecord, publicNginxService);
-            this.putCloudflareRecord(publicNginxRecord, this.viescloudCloudflareService, VIESCLOUD_DOMAIN, true);
-        }
+        if (publicNginxRecord != null)
+            this.putDnsRecord(uri, publicNginxRecord, this.getDnsPackage(VIESCLOUD_DOMAIN));
 
-        if (localNginxRecord != null) {
-            this.putNginxRecord(uri, localNginxRecord, localNginxService);
-            this.putCloudflareRecord(localNginxRecord, this.vieslocalCloudflareService, VIESLOCAL_DOMAIN, false);
-        }
+        if (localNginxRecord != null)
+            this.putDnsRecord(uri, localNginxRecord, this.getDnsPackage(VIESLOCAL_DOMAIN));
 
-        if (currentDnsRecord.getPublicNginxRecord() != null && publicNginxRecord == null) {
-            this.deleteNginxRecord(this.publicNginxService, currentDnsRecord.getPublicNginxRecord());
-        }
+        if (currentDnsRecord.getPublicNginxRecord() != null && publicNginxRecord == null)
+            this.getDnsPackage(VIESCLOUD_DOMAIN).getNginxService().deleteProxyHostByUri(uri);
 
-        if (currentDnsRecord.getLocalNginxRecord() != null && localNginxRecord == null) {
-            this.deleteNginxRecord(this.localNginxService, currentDnsRecord.getLocalNginxRecord());
-        }
+        if (currentDnsRecord.getLocalNginxRecord() != null && localNginxRecord == null)
+            this.getDnsPackage(VIESLOCAL_DOMAIN).getNginxService().deleteProxyHostByUri(uri);
+    }
+
+    private void putDnsRecord(String uri, NginxProxyHostResponse response, DnsPackage pack) {
+        this.putNginxRecord(uri, response, pack.getNginxService());
+        this.putCloudflareRecord(response, pack.getCloudflareService(), pack.getMainDomainName(), pack.isProxied());
     }
 
     private void putNginxRecord(String uri, NginxProxyHostResponse record, NginxService service) {
         if (service.getProxyHostByUri(uri) == null)
             service.createProxyHost(record);
-        else
+        else {
             service.putProxyHost(record);
+        }
     }
 
     private void putCloudflareRecord(NginxProxyHostResponse record, CloudflareService cloudflareService, String dns, boolean proxied) {
@@ -194,6 +201,10 @@ public class DnsService {
         record.getDomainNames().forEach(domainName -> {
             putCloudflareDns(cloudflareService, dns, proxied, domainName);
         });
+    }
+
+    private void putCloudflareDns(DnsPackage pack, String domainName) {
+        this.putCloudflareDns(pack.getCloudflareService(), pack.getMainDomainName(), pack.isProxied(), domainName);
     }
 
     private void putCloudflareDns(CloudflareService cloudflareService, String dns, boolean proxied, String domainName) {
@@ -214,21 +225,15 @@ public class DnsService {
     }
 
     public void deleteDnsRecord(String uri) {
-        var record = this.getDnsRecordMap().get(uri);
-        if (record != null) {
-            deleteNginxRecord(this.publicNginxService, record.getPublicNginxRecord());
-            deleteNginxRecord(this.localNginxService, record.getLocalNginxRecord());
-        }
-    }
-
-    private void deleteNginxRecord(NginxService service, NginxProxyHostResponse response) {
-        if(response != null && response.getId() != 0)
-            service.deleteProxyHost(response.getId());
+        this.dnsPackages.forEach(pack -> {
+            pack.getNginxService().deleteProxyHostByUri(uri);
+        });
     }
 
     public void cleanUnusedCloudflareCnameDns() { 
-        cleanUnusedCloudflareCnameDns(this.viescloudCloudflareService, this.publicNginxService);
-        cleanUnusedCloudflareCnameDns(this.vieslocalCloudflareService, this.localNginxService);
+        this.dnsPackages.forEach(pack -> {
+            cleanUnusedCloudflareCnameDns(pack.getCloudflareService(), pack.getNginxService());
+        });
     }
 
     private void cleanUnusedCloudflareCnameDns(CloudflareService cloudflareService, NginxService nginxService) {
@@ -245,8 +250,9 @@ public class DnsService {
     }
 
     private void syncDnsRecord() {
-        this.syncDnsRecord(this.viescloudCloudflareService, this.publicNginxService);
-        this.syncDnsRecord(this.vieslocalCloudflareService, this.localNginxService);
+        this.dnsPackages.forEach(pack -> {
+            this.syncDnsRecord(pack.getCloudflareService(), pack.getNginxService());
+        });
     }
 
     private void syncDnsRecord(CloudflareService cloudflareService, NginxService nginxService) {
@@ -256,12 +262,7 @@ public class DnsService {
         for (String domainName : domainNames) {
             var cloudflareDns = cloudflareDnsResult.parallelStream().filter(e -> e.getName().equalsIgnoreCase(domainName)).findFirst().orElse(null);
             if (cloudflareDns == null) {
-                if(domainName.endsWith(VIESCLOUD_DOMAIN)) {
-                    this.putCloudflareDns(cloudflareService, VIESCLOUD_DOMAIN, true, domainName);
-                }
-                else if(domainName.endsWith(VIESLOCAL_DOMAIN)) {
-                    this.putCloudflareDns(cloudflareService, VIESLOCAL_DOMAIN, false, domainName);
-                }
+                this.putCloudflareDns(this.getDnsPackageEndWith(domainName), domainName);
             }
         }
     }

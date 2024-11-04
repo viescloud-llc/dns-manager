@@ -6,6 +6,7 @@ import java.util.Optional;
 import com.viescloud.llc.viesspringutils.exception.HttpResponseThrowers;
 import com.viescloud.llc.viesspringutils.repository.DatabaseCall;
 import com.viescloud.llc.viesspringutils.util.JsonUtils;
+import com.viescloud.llc.viesspringutils.util.ReflectionUtils;
 import com.vincent.llc.dns.manager.feign.NginxClient;
 import com.vincent.llc.dns.manager.model.nginx.NginxCertificateResponse;
 import com.vincent.llc.dns.manager.model.nginx.NginxLoginRequest;
@@ -108,10 +109,13 @@ public abstract class NginxService {
 
     public void putProxyHost(NginxProxyHostRequest request, int id) {
         var proxyHost = this.getProxyHostById(id);
-        this.nginxClient.updateProxyHost(this.getJwtHeader(), id, request)
-                        .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to update nginx proxy host"));
-        
-        this.deleteProxyHostCache(proxyHost);
+
+        if(!ReflectionUtils.isEqual(proxyHost, request)) {
+            this.nginxClient.updateProxyHost(this.getJwtHeader(), id, request)
+                            .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to update nginx proxy host"));
+            
+            this.deleteProxyHostCache(proxyHost);
+        }
     }
 
     public void putProxyHost(NginxProxyHostResponse response) {
@@ -126,10 +130,23 @@ public abstract class NginxService {
 
     public void deleteProxyHost(int id) {
         var proxyHost = this.getProxyHostById(id);
-        this.nginxClient.deleteProxyHost(this.getJwtHeader(), id)
+
+        if (proxyHost != null && proxyHost.getId() != 0) {
+            this.nginxClient.deleteProxyHost(this.getJwtHeader(), id)
+                            .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to delete nginx proxy host"));
+            
+            this.deleteProxyHostCache(proxyHost);
+        }
+    }
+
+    public void deleteProxyHostByUri(String uri) {
+        var proxyHost = this.getProxyHostByUri(uri);
+        if(proxyHost != null && proxyHost.getId() != 0) {
+            this.nginxClient.deleteProxyHost(this.getJwtHeader(), proxyHost.getId())
                         .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to delete nginx proxy host"));
         
-        this.deleteProxyHostCache(proxyHost);
+            this.deleteProxyHostCache(proxyHost);
+        }
     }
 
     // ------------------Helper-------------------
