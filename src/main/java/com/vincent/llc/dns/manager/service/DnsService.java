@@ -78,14 +78,14 @@ public class DnsService {
     }
 
     private void fetchAllCloudflareVieslocalDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESCLOUD_DOMAIN).getCloudflareService(), (dns, record) -> {
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESLOCAL_DOMAIN).getCloudflareService(), (dns, record) -> {
             record.getCloudflareViesLocalRecord().add(dns);
             return record;
         });
     }
 
     private void fetchAllCloudflareViescloudDnsRecords(Map<String, DnsRecord> recordMap, Map<String, String> dnsMap) {
-        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESLOCAL_DOMAIN).getCloudflareService(), (dns, record) -> {
+        this.fetchAllCloudflareDnsRecords(recordMap, dnsMap, this.getDnsPackage(VIESCLOUD_DOMAIN).getCloudflareService(), (dns, record) -> {
             record.getCloudflareViescloudRecord().add(dns);
             return record;
         });

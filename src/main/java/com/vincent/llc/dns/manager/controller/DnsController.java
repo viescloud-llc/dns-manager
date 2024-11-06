@@ -34,7 +34,7 @@ public class DnsController {
     }
 
     @PutMapping()
-    public ResponseEntity<?> patchDnsRecord(@RequestBody DnsRecord record, @RequestParam(required = false, defaultValue = "false") boolean cleanUnusedCloudflareCnameDns) {
+    public ResponseEntity<?> putDnsRecord(@RequestBody DnsRecord record, @RequestParam(required = false, defaultValue = "false") boolean cleanUnusedCloudflareCnameDns) {
         this.dnsService.putDnsRecord(record);
         if (cleanUnusedCloudflareCnameDns) {
             this.dnsService.cleanUnusedCloudflareCnameDns();
