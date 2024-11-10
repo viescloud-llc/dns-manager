@@ -19,10 +19,13 @@ public abstract class CloudflareService {
     protected abstract String cloudflareEmail();
     protected abstract String cloudflareKey();
     protected abstract String cloudflareZoneId();
+    protected abstract String content();
 
     protected final CloudflareClient cloudflareClient;
     protected final DatabaseCall<String, List<CloudflareResult>, ?> dnsListCache;
     protected final DatabaseCall<String, CloudflareResult, ?> dnsCache;
+
+    
 
     public void clearCache() {
         var list = this.getAllCloudflareCnameRecord();
@@ -30,10 +33,10 @@ public abstract class CloudflareService {
     }
 
     public List<CloudflareResult> getAllCloudflareCnameRecord() {
-        return this.getAllCloudflareRecord("CNAME");
+        return this.getAllCloudflareRecord("CNAME", this.content());
     }
 
-    public List<CloudflareResult> getAllCloudflareRecord(String type) {
+    public List<CloudflareResult> getAllCloudflareRecord(String type, String content) {
         var result = this.dnsListCache.get(DEFAULT_CNAME_ALL_KEY);
         if(result != null) {
             return result;
@@ -44,7 +47,12 @@ public abstract class CloudflareService {
                                     .getResult();
 
         // filter only CNAME
-        result = result.parallelStream().filter(r -> r.getType().toUpperCase().equals(type)).toList();
+        if(content != null) {
+            result = result.parallelStream().filter(r -> r.getType().toUpperCase().equals(type) && r.getContent().equalsIgnoreCase(content)).toList();
+        }
+        else
+            result = result.parallelStream().filter(r -> r.getType().toUpperCase().equals(type)).toList();
+        
 
         result.parallelStream().forEach(this::saveDnsCache);
         this.dnsListCache.saveAndExpire(DEFAULT_CNAME_ALL_KEY, result);        

@@ -45,5 +45,10 @@ public class VieslocalCloudflareService extends CloudflareService {
     public String cloudflareZoneId() {
         return this.cloudflareVieslocalZoneId;
     }
+
+    @Override
+    protected String content() {
+        return "vieslocal.com";
+    }
     
 }

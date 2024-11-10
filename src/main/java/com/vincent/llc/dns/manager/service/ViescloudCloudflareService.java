@@ -46,4 +46,8 @@ public class ViescloudCloudflareService extends CloudflareService {
         return this.cloudflareViescloudZoneId;
     }
     
+    @Override
+    protected String content() {
+        return "viescloud.com";
+    }
 }

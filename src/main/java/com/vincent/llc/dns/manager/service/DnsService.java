@@ -21,6 +21,7 @@ import com.vincent.llc.dns.manager.model.nginx.NginxProxyHostResponse;
 
 @Service
 public class DnsService {
+    //TODO: refactor this to use cloudflareService.content()
     public static final String VIESCLOUD_DOMAIN = "viescloud.com";
     public static final String VIESLOCAL_DOMAIN = "vieslocal.com";
 
