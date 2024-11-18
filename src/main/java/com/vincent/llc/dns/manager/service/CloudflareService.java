@@ -47,12 +47,7 @@ public abstract class CloudflareService {
                                     .getResult();
 
         // filter only CNAME
-        if(content != null) {
-            result = result.parallelStream().filter(r -> r.getType().toUpperCase().equals(type) && r.getContent().equalsIgnoreCase(content)).toList();
-        }
-        else
-            result = result.parallelStream().filter(r -> r.getType().toUpperCase().equals(type)).toList();
-        
+        result = result.parallelStream().filter(r -> r.getType().toUpperCase().equals(type) && r.getContent().equalsIgnoreCase(content)).toList();
 
         result.parallelStream().forEach(this::saveDnsCache);
         this.dnsListCache.saveAndExpire(DEFAULT_CNAME_ALL_KEY, result);        
