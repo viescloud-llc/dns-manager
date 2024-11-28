@@ -23,12 +23,10 @@ public class VieslocalCloudflareService extends CloudflareService {
     private String cloudflareVieslocalZoneId;
 
     public VieslocalCloudflareService(CloudflareClient cloudflareClient,
-            DatabaseCall<String, List<CloudflareResult>, ?> dnsListCache, DatabaseCall<String, CloudflareResult, ?> dnsCache) {
+            DatabaseCall<String, List<CloudflareResult>> dnsListCache, DatabaseCall<String, CloudflareResult> dnsCache) {
         super(cloudflareClient, dnsListCache, dnsCache);
-        dnsListCache.init("com.vincent.llc.dns.manager.service.VieslocalCloudflareService.dnsListCache");
-        dnsListCache.setTTL(DateTime.ofDays(1));
+        dnsListCache.init("com.vincent.llc.dns.manager.service.VieslocalCloudflareService.dnsListCache").ttl(DateTime.ofDays(1));
         dnsCache.init("com.vincent.llc.dns.manager.service.VieslocalCloudflareService.dnsCache");
-        dnsCache.setTTL(DateTime.ofDays(1));
     }
 
     @Override

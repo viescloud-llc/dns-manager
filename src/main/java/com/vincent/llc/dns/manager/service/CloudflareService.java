@@ -22,8 +22,8 @@ public abstract class CloudflareService {
     protected abstract String content();
 
     protected final CloudflareClient cloudflareClient;
-    protected final DatabaseCall<String, List<CloudflareResult>, ?> dnsListCache;
-    protected final DatabaseCall<String, CloudflareResult, ?> dnsCache;
+    protected final DatabaseCall<String, List<CloudflareResult>> dnsListCache;
+    protected final DatabaseCall<String, CloudflareResult> dnsCache;
 
     
 

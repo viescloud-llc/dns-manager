@@ -25,9 +25,9 @@ public abstract class NginxService {
     protected abstract String nginxPassword();
 
     protected final NginxClient nginxClient;
-    protected DatabaseCall<String, String, ?> jwtCache;
-    protected DatabaseCall<String, List<NginxProxyHostResponse>, ?> proxyHostsCache;
-    protected DatabaseCall<String, NginxProxyHostResponse, ?> proxyHostCache;
+    protected DatabaseCall<String, String> jwtCache;
+    protected DatabaseCall<String, List<NginxProxyHostResponse>> proxyHostsCache;
+    protected DatabaseCall<String, NginxProxyHostResponse> proxyHostCache;
 
     public void clearCache() {
         var proxyHosts = this.getAllProxyHost();
@@ -110,7 +110,7 @@ public abstract class NginxService {
     public void putProxyHost(NginxProxyHostRequest request, int id) {
         var proxyHost = this.getProxyHostById(id);
 
-        if(!ReflectionUtils.isEqual(proxyHost, request)) {
+        if(!ReflectionUtils.isEquals(proxyHost, request)) {
             this.nginxClient.updateProxyHost(this.getJwtHeader(), id, request)
                             .orElseThrow(() -> HttpResponseThrowers.throwServerErrorException("Failed to update nginx proxy host"));
             

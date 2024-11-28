@@ -19,15 +19,12 @@ public class PublicNginxService extends NginxService {
     @Value("${nginx.password}")
     private String nginxPassword;
 
-    public PublicNginxService(PublicNginxClient nginxClient, DatabaseCall<String, String, ?> jwtCache,
-            DatabaseCall<String, List<NginxProxyHostResponse>, ?> proxyHostsCache, DatabaseCall<String, NginxProxyHostResponse, ?> proxyHostCache) {
+    public PublicNginxService(PublicNginxClient nginxClient, DatabaseCall<String, String> jwtCache,
+            DatabaseCall<String, List<NginxProxyHostResponse>> proxyHostsCache, DatabaseCall<String, NginxProxyHostResponse> proxyHostCache) {
         super(nginxClient, jwtCache, proxyHostsCache, proxyHostCache);
-        jwtCache.init("com.vincent.llc.dns.manager.service.jwt.public");
-        jwtCache.setTTL(DateTime.ofDays(1));
-        proxyHostsCache.init("com.vincent.llc.dns.manager.service.proxyHosts.public");
-        proxyHostsCache.setTTL(DateTime.ofDays(1));
-        proxyHostCache.init("com.vincent.llc.dns.manager.service.proxyHost.public");
-        proxyHostCache.setTTL(DateTime.ofDays(1));
+        jwtCache.init("com.vincent.llc.dns.manager.service.jwt.public").ttl(DateTime.ofDays(1));
+        proxyHostsCache.init("com.vincent.llc.dns.manager.service.proxyHosts.public").ttl(DateTime.ofDays(1));
+        proxyHostCache.init("com.vincent.llc.dns.manager.service.proxyHost.public").ttl(DateTime.ofDays(1));
     }
 
     @Override
